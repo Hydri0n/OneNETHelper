@@ -26,7 +26,7 @@ public class Device {
     private DataPointsModel dataPointsModel;
     private DataStreamsModel dataStreamsModel;
 
-    Device(String deviceId, String apiKey) {
+    public Device(String deviceId, String apiKey) {
         this.deviceId = deviceId;
         this.apiKey = apiKey;
         statusModel = new StatusModel();
@@ -73,7 +73,7 @@ public class Device {
 
     /**
      * @Description 根据设置的上限值，获取数据流中若干数据点
-     * @Param dataStreamId 数据流的id，limit 数据点个数上限
+     * @Param dataStreamId 数据流的id，limit 返回的数据点个数上限
      * @Return 数据流中若干数据点，默认升序
      */
     public List<DeviceDataPoint> getDataPointsWithinLimit(String dataStreamId,int limit){
@@ -82,22 +82,11 @@ public class Device {
 
     /**
      * @Description 根据设置的上限值，获取数据流中若干数据点
-     * @Param dataStreamId 数据流的id，limit 数据点个数上限，sort 升序(ASC)/倒序(DESC)
+     * @Param dataStreamId 数据流的id，limit 返回的数据点个数上限，sort 升序(ASC)/倒序(DESC)
      * @Return 数据流中若干数据点
      */
     public List<DeviceDataPoint> getDataPointsWithinLimit(String dataStreamId,int limit,String sort){
-        List<Map<String,Object>> list = dataPointsModel.getSeveralDataPoints(apiKey,deviceId,
-                dataStreamId,limit,null,null,null,null,sort);
-        List<DeviceDataPoint> dataPoints = new ArrayList<>();
-        for (Map<String,Object> map : list){
-            try{
-                dataPoints.add(new DeviceDataPoint(map.get("value"),map.get("time").toString()));
-            }
-            catch (NullPointerException e){
-                e.printStackTrace();
-            }
-        }
-        return dataPoints;
+        return getDataPoints(dataStreamId,limit,null,null,null,null,sort);
     }
 
     /**
@@ -127,8 +116,27 @@ public class Device {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         String strStartTime = format.format(startTime);
         String strEndTime = format.format(endTime);
+        return getDataPoints(dataStreamId,null,strStartTime,strEndTime,null,null,sort);
+    }
+
+    /**
+     * @Description 根据自定义的设置获取符合条件的若干数据点
+     * @Param dataStreamId 数据流的id, limit 返回的数据点个数上限,
+     *        startTime 提取数据点的开始时间, endTime 提取数据点的结束时间,
+     *        duration 查询时间区间,单位为ms, cursor 指定本次请求继续从cursor位置开始提取数据,
+     *        sort 升序(ASC)/倒序(DESC)
+     * @Return 符合条件的若干数据点
+     */
+    public List<DeviceDataPoint> getDataPoints(String dataStreamId,
+                                               Integer limit,
+                                               String start,
+                                               String end,
+                                               Integer duration,
+                                               Integer cursor,
+                                               String sort) {
         List<Map<String,Object>> list = dataPointsModel.getSeveralDataPoints(apiKey,deviceId,
-                dataStreamId,null,strStartTime,strEndTime,null,null,sort);
+                dataStreamId,limit,start,end,duration,cursor,sort);
+        List<DeviceDataPoint> dataPoints = new ArrayList<>();
         for (Map<String,Object> map : list){
             try{
                 dataPoints.add(new DeviceDataPoint(map.get("value"),map.get("time").toString()));
