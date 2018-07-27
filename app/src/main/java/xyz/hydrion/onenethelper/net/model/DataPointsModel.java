@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import xyz.hydrion.onenethelper.net.RetrofitHelper;
 import xyz.hydrion.onenethelper.net.bean.DataPoints;
@@ -65,6 +67,46 @@ public class DataPointsModel {
         return list;
     }
 
+    public void loadDataPointsAsync(final OnLoadDataPointsListener listener, String apiKey,
+                                    String deviceId,
+                                    String dataStreamId,
+                                    Integer limit,
+                                    String start,
+                                    String end,
+                                    Integer duration,
+                                    Integer cursor,
+                                    String sort) {
+        Call<DataPoints> call = service.getDataPoints(apiKey,deviceId,dataStreamId,
+                limit,start,end,duration,cursor,sort);
+        retrofit2.Response<DataPoints> response = null;
+        call.enqueue(new Callback<DataPoints>() {
+            @Override
+            public void onResponse(Call<DataPoints> call, Response<DataPoints> response) {
+                List<Map<String,Object>> list = new ArrayList<>();
+                try {
+                    DataPoints.DataBean.DatastreamsBean datastreamsBean =
+                            checkResponse(response);
+                    for (DataPoints.DataBean.DatastreamsBean.DatapointsBean bean : datastreamsBean.getDatapoints()) {
+                        Map<String, Object> map = new HashMap<>();
+                        map.put("value", bean.getValue());
+                        map.put("time", bean.getAt());
+                        list.add(map);
+                    }
+                    listener.OnLoadSuccess(list);
+                }
+                catch (Exception e){
+                    e.printStackTrace();
+                    listener.OnLoadFailed();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<DataPoints> call, Throwable t) {
+                listener.OnLoadFailed();
+            }
+        });
+    }
+
     private List<DataPoints.DataBean.DatastreamsBean.DatapointsBean> getDataPoints(String apiKey,
                                                                     String deviceId,
                                                                     String dataStreamId,
@@ -76,10 +118,13 @@ public class DataPointsModel {
                                                                     String sort) throws IOException {
         Call<DataPoints> call = service.getDataPoints(apiKey,deviceId,dataStreamId,
                 limit,start,end,duration,cursor,sort);
-        retrofit2.Response<DataPoints> response = null;
-        DataPoints dataPoints = null;
-        response = call.execute();
-        dataPoints = (DataPoints) response.body();
+        retrofit2.Response<DataPoints> response = call.execute();
+        DataPoints.DataBean.DatastreamsBean datastreamsBean = checkResponse(response);
+        return datastreamsBean.getDatapoints();
+    }
+
+    private DataPoints.DataBean.DatastreamsBean checkResponse(Response response){
+        DataPoints dataPoints = (DataPoints) response.body();
         if (dataPoints == null)
             throw new RuntimeException("信息解析失败，返回内容:" + response.toString());
         DataPoints.DataBean dataBean = dataPoints.getData();
@@ -90,7 +135,11 @@ public class DataPointsModel {
         DataPoints.DataBean.DatastreamsBean datastreamsBean = dataBean.getDatastreams().get(0);
         if (datastreamsBean.getDatapoints().isEmpty())
             throw new RuntimeException("未查询到数据点记录");
-        return datastreamsBean.getDatapoints();
+        return datastreamsBean;
+    }
 
+    public interface OnLoadDataPointsListener {
+        void OnLoadSuccess(List<Map<String,Object>> list);
+        void OnLoadFailed();
     }
 }

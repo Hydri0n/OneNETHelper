@@ -80,7 +80,7 @@ public class DataPoints {
             public static class DatapointsBean {
 
                 private String at;
-                private String value;
+                private Object value;
 
                 public String getAt() {
                     return at;
@@ -91,10 +91,10 @@ public class DataPoints {
                 }
 
                 public String getValue() {
-                    return value;
+                    return value.toString();
                 }
 
-                public void setValue(String value) {
+                public void setValue(Object value) {
                     this.value = value;
                 }
             }

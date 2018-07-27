@@ -13,8 +13,10 @@ public class DeviceDataPoint {
         this.time = time;
     }
 
-    public Object getValue() {
-        return value;
+    public String getValue() {
+        return value.toString()
+                .replace("{","")
+                .replace("}","");
     }
 
     public String getTime() {
